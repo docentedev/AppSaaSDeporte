@@ -376,3 +376,116 @@ presentation
 2. Menos duplicacion de codigo visual.
 3. Facil separar responsabilidades: screen maneja estado, componentes renderizan.
 4. Deja lista la base para integrar ViewModel por screen y navegacion entre paginas.
+
+## Version 4: Separacion estilo React (Componente + Styles)
+
+En esta etapa se llevo la arquitectura un paso mas cerca del enfoque React `Componente.tsx + Componente.module.css`, usando Compose:
+
+1. `Componente.kt` para estructura/comportamiento.
+2. `ComponenteStyles.kt` para tokens visuales (colores, radios, textos de preview, spacing, etc.).
+
+### Cambios implementados
+
+1. Se separaron estilos en archivos dedicados:
+	- `AppTitleTextStyles.kt`
+	- `AppBodyTextStyles.kt`
+	- `AppPrimaryButtonStyles.kt`
+	- `ScreenHeaderStyles.kt`
+	- `HomeWelcomeCardStyles.kt`
+	- `AppScreenTemplateStyles.kt`
+2. Cada componente consume su archivo de estilos y deja la UI mas limpia.
+3. Se mantuvo el patron de previews para validar visualmente cada componente.
+
+### Mejoras visuales del boton principal
+
+Se mejoro `AppPrimaryButton` para que no se vea tan redondeado y tenga estados visuales claros:
+
+1. Bordes menos redondeados (`CORNER_RADIUS = 12.dp`).
+2. Color base mas consistente (`CONTAINER_COLOR`).
+3. Estado presionado con color mas oscuro (`PRESSED_CONTAINER_COLOR`).
+4. Estado deshabilitado con contraste adecuado (`DISABLED_CONTAINER_COLOR`, `DISABLED_CONTENT_COLOR`).
+5. Elevacion ajustada por estado (`DEFAULT_ELEVATION`, `PRESSED_ELEVATION`).
+
+### Ajuste de firma Compose en AppPrimaryButton
+
+Se aplicaron 2 reglas importantes para ergonomia y lint de Compose:
+
+1. `modifier` se dejo como primer parametro opcional.
+2. `onClick` se movio al final para permitir trailing lambda:
+	- `AppPrimaryButton(label = "..." ) { ... }`
+
+## Configuracion de variables (reemplazo de .env)
+
+Para escalar a multiples variables de configuracion, se estandarizo el flujo con Gradle:
+
+1. Variables declaradas en `gradle.properties` (ejemplo: `APP_VERSION`, `API_BASE_URL`, etc.).
+2. Exportacion automatica de esas claves a `BuildConfig` desde `app/build.gradle.kts`.
+3. Fallback opcional a variables de entorno del sistema con `providers.environmentVariable(...)`.
+4. `.env` queda innecesario en esta estrategia.
+
+### Footer con version de app
+
+Se muestra la version en la pantalla Home usando:
+
+1. `BuildConfig.APP_VERSION`.
+2. Footer alineado al borde inferior/derecho en `HomeScreen`.
+
+## Problemas encontrados y soluciones aplicadas
+
+### 1) Render Problem en Preview
+
+Problema:
+
+1. Android Studio no renderizaba previews Compose.
+
+Solucion:
+
+1. Agregar `debugImplementation(libs.androidx.ui.tooling)`.
+2. Mantener previews envueltos en `MaterialTheme`.
+
+### 2) Error por plugin Kotlin Android duplicado
+
+Problema:
+
+1. `Cannot add extension with name 'kotlin'`.
+
+Solucion:
+
+1. Quitar aplicacion duplicada del plugin donde no correspondia.
+
+### 3) Error al usar buildConfigField
+
+Problema:
+
+1. `defaultConfig contains custom BuildConfig fields, but the feature is disabled`.
+
+Solucion:
+
+1. Habilitar `buildFeatures { buildConfig = true }`.
+
+### 4) Error con weight en HomeScreen
+
+Problema:
+
+1. Error de compilacion por import/uso de `weight` en layout.
+
+Solucion:
+
+1. Reorganizar layout con `Arrangement.SpaceBetween`, evitando dependencia de `weight`.
+
+### 5) Error de llamada en AppPrimaryButton
+
+Problema:
+
+1. Fallo con llamada tipo trailing lambda en `HomeWelcomeCard`.
+
+Solucion:
+
+1. Mover `onClick` al final de la firma de `AppPrimaryButton`.
+2. Conservar `modifier` como primer parametro opcional.
+
+## Estado actual
+
+1. Build validado en local: `:app:assembleDebug` exitoso.
+2. Preview funcional en componentes principales.
+3. Arquitectura UI con separacion `Componente + Styles` activa y documentada.

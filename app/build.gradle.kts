@@ -3,6 +3,29 @@ plugins { // Start plugin declarations for this Android app module
     alias(libs.plugins.kotlin.compose) // Apply Kotlin Compose compiler plugin
 } // End plugin declarations
 
+val appConfigDefaults = mapOf( // Central list of app config keys and default values
+    "APP_VERSION" to "1.0.0", // App version shown in UI
+    "API_BASE_URL" to "https://api.example.com", // Base URL for backend API
+    "API_TIMEOUT_SECONDS" to "30", // Network timeout as string value
+    "ENV_NAME" to "dev", // Environment label (dev/staging/prod)
+    "FEATURE_LOGIN_ENABLED" to "true", // Feature flag example for login
+    "ANALYTICS_ENABLED" to "false", // Feature flag example for analytics
+    "SUPPORT_EMAIL" to "support@example.com", // Contact email shown in app
+    "CDN_BASE_URL" to "https://cdn.example.com", // CDN URL for static assets
+    "TERMS_URL" to "https://example.com/terms", // Terms and conditions URL
+    "PRIVACY_URL" to "https://example.com/privacy" // Privacy policy URL
+) // End defaults map
+
+fun readAppConfig(name: String, defaultValue: String): String = // Read from gradle.properties first, then OS env var, then default
+    providers.gradleProperty(name) // 1) Use value from gradle.properties
+        .orElse(providers.environmentVariable(name)) // 2) Fallback to environment variable
+        .orElse(defaultValue) // 3) Fallback to hardcoded default
+        .get() // Resolve final value
+
+val appConfig = appConfigDefaults.mapValues { (key, defaultValue) -> // Resolve all config values once during configuration
+    readAppConfig(key, defaultValue) // Read each key using the fallback chain
+} // End appConfig resolution
+
 android { // Start Android-specific build configuration
     namespace = "com.duoc.saasdeporte" // Kotlin/Java package namespace used by generated R and BuildConfig
     compileSdk = 37 // Android API level used to compile the app
@@ -13,6 +36,9 @@ android { // Start Android-specific build configuration
         targetSdk = 37 // Target Android API level for runtime behavior compatibility
         versionCode = 1 // Internal integer version used for updates
         versionName = "1.0" // Human-readable app version shown to users
+        appConfig.forEach { (key, value) -> // Export every declared config key into BuildConfig
+            buildConfigField("String", key, "\"$value\"") // Make config value accessible as BuildConfig.KEY
+        } // End BuildConfig export loop
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" // Runner used for instrumented Android tests
     } // End defaultConfig block
@@ -26,6 +52,7 @@ android { // Start Android-specific build configuration
     } // End buildTypes block
 
     buildFeatures { // Start optional Android build features
+        buildConfig = true // Enable custom BuildConfig fields generation
         compose = true // Enable Jetpack Compose support for this module
     } // End buildFeatures block
 } // End Android configuration
