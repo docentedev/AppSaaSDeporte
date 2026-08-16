@@ -183,3 +183,147 @@ Después de sincronizar Gradle y ejecutar la app, se validó que:
 ## Resultado
 
 SaaSDeporte quedó como una base funcional y mantenible para seguir construyendo módulos de negocio, con stack moderno (Kotlin + Compose), configuración consistente y punto de entrada correctamente declarado.
+
+## Version 2: Estructura base para escalar
+
+Para la segunda version se agrego una estructura por capas dentro del paquete base `com.duoc.saasdeporte`, orientada a Clean Architecture y preparada para integrar API REST + base de datos local.
+
+### Estructura creada
+
+```text
+com.duoc.saasdeporte
+├── di
+├── data
+│   ├── local
+│   ├── remote
+│   └── repository
+├── domain
+│   ├── model
+│   ├── repository
+│   └── usecase
+└── presentation
+	 ├── login
+	 └── home
+```
+
+### Que va en cada package y por que
+
+1. `di/`
+	- Que contiene: modulos de Hilt para proveer Retrofit, Room, interceptores y repositorios.
+	- Por que existe: centraliza la construccion de dependencias y evita crear objetos manualmente en Activities/ViewModels.
+
+2. `data/local/`
+	- Que contiene: `@Entity`, `@Dao`, `RoomDatabase`.
+	- Por que existe: concentra la persistencia local y separa reglas de almacenamiento del resto de la app.
+
+3. `data/remote/`
+	- Que contiene: interfaces de Retrofit, DTOs de request/response y `AuthInterceptor` para JWT.
+	- Por que existe: encapsula toda la comunicacion HTTP y el mapeo de payloads externos.
+
+4. `data/repository/`
+	- Que contiene: implementaciones concretas de repositorios (por ejemplo, `AuthRepositoryImpl`).
+	- Por que existe: une origen remoto/local y entrega datos listos para dominio.
+
+5. `domain/model/`
+	- Que contiene: modelos puros de negocio (sin anotaciones de red ni base de datos).
+	- Por que existe: mantiene el nucleo de negocio independiente de frameworks.
+
+6. `domain/repository/`
+	- Que contiene: interfaces de repositorio que consume el dominio.
+	- Por que existe: permite invertir dependencias (dominio no depende de data).
+
+7. `domain/usecase/`
+	- Que contiene: casos de uso (ejemplo: `LoginUseCase`, `GetHomeDataUseCase`).
+	- Por que existe: concentra reglas de negocio y orquesta repositorios con una intencion clara por accion.
+
+8. `presentation/login/`
+	- Que contiene: pantalla Compose de login, estado de UI y `LoginViewModel`.
+	- Por que existe: separa el flujo de autenticacion del resto de pantallas.
+
+9. `presentation/home/`
+	- Que contiene: pantalla principal, estado de UI y `HomeViewModel`.
+	- Por que existe: encapsula el flujo principal post-login y facilita evolucion modular.
+
+### Beneficio inmediato de esta estructura
+
+1. Facilita pruebas unitarias por capa.
+2. Evita mezclar UI, red y base de datos en una sola clase.
+3. Permite crecer por funcionalidades sin perder orden.
+4. Prepara el proyecto para agregar autenticacion JWT, cache local y sincronizacion de datos.
+
+### Estado actual de la V2
+
+Se crearon los packages y archivos base de referencia para dejar la estructura trazada en el repositorio. El siguiente paso es implementar clases reales en cada capa (API service, entities/dao, repositorios, use cases y viewmodels).
+
+### Paso nuevo V2: mover MainActivity y agregar Preview
+
+Para ordenar mejor la capa de presentacion, se movio la activity de entrada y se separo la UI en un composable con preview.
+
+1. `MainActivity` se movio desde la raiz del paquete a:
+	- `app/src/main/java/com/duoc/saasdeporte/presentation/MainActivity.kt`
+2. Se creo la pantalla `HomeScreen` en:
+	- `app/src/main/java/com/duoc/saasdeporte/presentation/home/HomeScreen.kt`
+3. Se agrego `@Preview(showBackground = true)` para visualizar la pantalla en Android Studio sin ejecutar la app.
+4. Se actualizo el `AndroidManifest.xml` para usar la nueva ruta:
+	- `android:name=".presentation.MainActivity"`
+
+#### Por que este cambio mejora la estructura
+
+1. `MainActivity` actua como host de UI y navegacion, por eso pertenece a `presentation/` y no al root del proyecto.
+2. La UI queda desacoplada de la Activity, facilitando testeo, reutilizacion y evolucion.
+3. El preview acelera desarrollo visual y reduce ciclos de compilar/instalar para cambios simples de interfaz.
+
+### Paso nuevo V2: solucion de Render Problem en Compose Preview
+
+Durante la configuracion de previews, Android Studio mostraba `Render Problem`. Se aplicaron ajustes de tooling para que el preview pudiera renderizar correctamente.
+
+1. En `app/build.gradle.kts` se agrego dependencia de tooling solo para debug:
+	- `debugImplementation(libs.androidx.ui.tooling)`
+2. En `gradle/libs.versions.toml` se agrego el alias:
+	- `androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }`
+3. En el preview de `HomeScreen` se envolvio el contenido con `MaterialTheme`:
+	- mejora el contexto visual del composable en el render de Android Studio.
+
+#### Resultado
+
+1. El preview de `HomeScreen` ahora se renderiza correctamente.
+2. La app sigue compilando en debug sin errores (`:app:assembleDebug` exitoso).
+
+## Troubleshooting (Compose Preview)
+
+Si Android Studio muestra errores de preview, revisa estos casos comunes:
+
+### 1) Render Problem
+
+Sintoma:
+
+1. El panel de Preview aparece en blanco o con mensaje `Render Problem`.
+
+Solucion:
+
+1. Verifica `debugImplementation(libs.androidx.ui.tooling)` en `app/build.gradle.kts`.
+2. Verifica alias `androidx-ui-tooling` en `gradle/libs.versions.toml`.
+3. Haz `Sync Project with Gradle Files` y vuelve a abrir el preview.
+
+### 2) Preview sin tema o con estilos rotos
+
+Sintoma:
+
+1. Colores/fuentes incorrectos o error visual en componentes Material.
+
+Solucion:
+
+1. Envuelve el composable de preview con `MaterialTheme`.
+2. Asegura que imports de Material 3 sean consistentes (`androidx.compose.material3.*`).
+
+### 3) Compila, pero el preview no actualiza cambios
+
+Sintoma:
+
+1. El emulador funciona, pero el preview no refleja cambios recientes.
+
+Solucion:
+
+1. Usa `Build > Clean Project` y luego `Build > Rebuild Project`.
+2. Reinicia el panel de preview (`Refresh` o cerrar/abrir pestaña).
+3. Si persiste, `File > Invalidate Caches / Restart`.

@@ -14,7 +14,7 @@
 
     <!-- Declaramos nuestra Activity principal -->
     <activity
-        android:name=".MainActivity"
+        android:name=".presentation.MainActivity"
         android:exported="true">
         <!-- Este intent-filter le dice a Android: "Pon un ícono de esto en el escritorio de aplicaciones" -->
         <intent-filter>
