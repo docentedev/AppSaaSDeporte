@@ -327,3 +327,52 @@ Solucion:
 1. Usa `Build > Clean Project` y luego `Build > Rebuild Project`.
 2. Reinicia el panel de preview (`Refresh` o cerrar/abrir pestaña).
 3. Si persiste, `File > Invalidate Caches / Restart`.
+
+## Version 3: Estructura tipo React (Screens + Atomic Design)
+
+Para trabajar parecido a React, se agrego una estructura donde las paginas son `screens` y la UI se compone por capas reutilizables (`atoms`, `molecules`, `organisms`, `templates`).
+
+### Estructura V3 de presentation
+
+```text
+presentation
+├── MainActivity.kt
+├── components
+│   ├── atoms
+│   │   ├── AppTitleText.kt
+│   │   ├── AppBodyText.kt
+│   │   └── AppPrimaryButton.kt
+│   ├── molecules
+│   │   └── ScreenHeader.kt
+│   ├── organisms
+│   │   └── HomeWelcomeCard.kt
+│   └── templates
+│       └── AppScreenTemplate.kt
+└── screens
+	├── home
+	│   └── HomeScreen.kt
+	└── login
+		└── LoginScreen.kt
+```
+
+### Como se mapea con la forma de trabajo en React
+
+1. `screens/*` = paginas (containers) donde manejas estado y orquestas componentes.
+2. `components/atoms` = piezas pequenas y reutilizables (tipografia, botones, etc.).
+3. `components/molecules` = combinaciones simples de atoms.
+4. `components/organisms` = bloques mas completos de interfaz.
+5. `components/templates` = layout base compartido por varias screens.
+
+### Cambios aplicados
+
+1. `MainActivity` ahora renderiza `HomeScreen` desde `presentation.screens.home`.
+2. Se movio Home a `presentation/screens/home/HomeScreen.kt`.
+3. Se agrego `LoginScreen` como segunda pagina base.
+4. Se incorporo un ejemplo de estado en `HomeScreen` (`Sin cargar` -> `Datos cargados (simulado)`) para mostrar flujo de screen que maneja data.
+
+### Beneficios de esta V3
+
+1. UI mas mantenible y escalable por composicion.
+2. Menos duplicacion de codigo visual.
+3. Facil separar responsabilidades: screen maneja estado, componentes renderizan.
+4. Deja lista la base para integrar ViewModel por screen y navegacion entre paginas.
